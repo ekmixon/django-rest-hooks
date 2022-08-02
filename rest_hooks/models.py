@@ -153,7 +153,7 @@ class AbstractHook(models.Model):
         return None
 
     def __unicode__(self):
-        return u'{} => {}'.format(self.event, self.target)
+        return f'{self.event} => {self.target}'
 
 
 class Hook(AbstractHook):

@@ -31,12 +31,13 @@ Hook = models.Hook
 
 urlpatterns = []
 HOOK_EVENTS_OVERRIDE = {
-    'comment.added':        comments_app_label + '.Comment.created',
-    'comment.changed':      comments_app_label + '.Comment.updated',
-    'comment.removed':      comments_app_label + '.Comment.deleted',
-    'comment.moderated':    comments_app_label + '.Comment.moderated',
-    'special.thing':        None,
+    'comment.added': f'{comments_app_label}.Comment.created',
+    'comment.changed': f'{comments_app_label}.Comment.updated',
+    'comment.removed': f'{comments_app_label}.Comment.deleted',
+    'comment.moderated': f'{comments_app_label}.Comment.moderated',
+    'special.thing': None,
 }
+
 
 ALT_HOOK_EVENTS = dict(HOOK_EVENTS_OVERRIDE)
 ALT_HOOK_EVENTS['comment.moderated'] += '+'
@@ -75,13 +76,13 @@ class RESTHooksTest(TestCase):
         self.assertEquals(
             models.get_event_actions_config(),
             {
-                comments_app_label + '.Comment': {
+                f'{comments_app_label}.Comment': {
                     'created': ('comment.added', False),
                     'updated': ('comment.changed', False),
                     'deleted': ('comment.removed', False),
                     'moderated': ('comment.moderated', True),
-                },
-            }
+                }
+            },
         )
 
     def test_no_user_property_fail(self):
@@ -241,38 +242,6 @@ class RESTHooksTest(TestCase):
 
     def test_timed_cycle(self):
         return # basically a debug test for thread pool bit
-        target = 'http://requestbin.zapier.com/api/v1/bin/test_timed_cycle'
-
-        hooks = [self.make_hook(event, target) for event in ['comment.added', 'comment.changed', 'comment.removed']]
-
-        for n in range(4):
-            early = datetime.now()
-            # fires N * 3 http calls
-            for x in range(10):
-                comment = Comment.objects.create(
-                    site=self.site,
-                    content_object=self.user,
-                    user=self.user,
-                    comment='Hello world!'
-                )
-                comment.comment = 'Goodbye world...'
-                comment.save()
-                comment.delete()
-            total = datetime.now() - early
-
-            print(total)
-
-            while True:
-                response = requests.get(target + '/view')
-                sent = response.json
-                if sent:
-                    print(len(sent), models.async_requests.total_sent)
-                if models.async_requests.total_sent >= (30 * (n+1)):
-                    time.sleep(5)
-                    break
-                time.sleep(1)
-
-        requests.delete(target + '/view') # cleanup to be polite
 
     def test_signal_emitted_upon_success(self):
         wrapper = lambda *args, **kwargs: None

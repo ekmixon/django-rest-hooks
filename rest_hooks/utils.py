@@ -7,10 +7,15 @@ except ImportError:
 from django.core.exceptions import ImproperlyConfigured
 from django.conf import settings
 
-if django.VERSION >= (2, 0,):
-    get_model_kwargs = {'require_ready': False}
-else:
-    get_model_kwargs = {}
+get_model_kwargs = (
+    {'require_ready': False}
+    if django.VERSION
+    >= (
+        2,
+        0,
+    )
+    else {}
+)
 
 
 def get_module(path):
@@ -85,9 +90,7 @@ def find_and_fire_hook(event_name, instance, user_override=None, payload_overrid
     from rest_hooks.models import HOOK_EVENTS
 
     if event_name not in HOOK_EVENTS.keys():
-        raise Exception(
-            '"{}" does not exist in `settings.HOOK_EVENTS`.'.format(event_name)
-        )
+        raise Exception(f'"{event_name}" does not exist in `settings.HOOK_EVENTS`.')
 
     filters = {'event': event_name}
 
@@ -101,8 +104,9 @@ def find_and_fire_hook(event_name, instance, user_override=None, payload_overrid
             filters['user'] = instance
         else:
             raise Exception(
-                '{} has no `user` property. REST Hooks needs this.'.format(repr(instance))
+                f'{repr(instance)} has no `user` property. REST Hooks needs this.'
             )
+
     # NOTE: This is probably up for discussion, but I think, in this
     # case, instead of raising an error, we should fire the hook for
     # all users/accounts it is subscribed to. That would be a genuine
@@ -149,8 +153,7 @@ def distill_model_event(
         if trust_event_name:
             pass
         elif event_name in HOOK_EVENTS:
-            auto = HOOK_EVENTS[event_name]
-            if auto:
+            if auto := HOOK_EVENTS[event_name]:
                 allowed_model, allowed_action = auto.rsplit('.', 1)
 
                 allowed_action_parts = allowed_action.rsplit('+', 1)
@@ -159,7 +162,7 @@ def distill_model_event(
                 model = model or allowed_model
                 action = action or allowed_action
 
-                if not (model == allowed_model and action == allowed_action):
+                if model != allowed_model or action != allowed_action:
                     event_name = None
 
                 if len(allowed_action_parts) == 2:
